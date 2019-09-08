@@ -1,0 +1,5 @@
+CREATE TABLE cankun_data (
+id INT, -- 编号
+pt_part char,
+pt_desc2 char,
+pt__qad13 char)
