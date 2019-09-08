@@ -69,32 +69,7 @@ public class test {
         BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
         BufferedWriter write = new BufferedWriter(new OutputStreamWriter(fos));
         String temp;
-/*       //创建stringBuilder容器来拼接sql语句
-       StringBuilder stringBuilder = new StringBuilder();
-       stringBuilder.append("USE db1;\n" +
-               "CREATE TABLE cankun_test (\n"+
-                "id int"
-       );*/
         while ((temp = reader.readLine()) != null) {//一次读一行
-            // 匹配规则
-     /*      String reg = "//";
-           Pattern pattern = Pattern.compile(reg);
-           // 内容 与 匹配规则 的测试
-           Matcher matcher = pattern.matcher(temp);
-           if( matcher.find() ){
-               // 包含前后的两个字符
-               System.out.println(matcher.group());
-               // 不包含前后的两个字符
-               System.out.println( matcher.group(1));
-           }else{
-               System.out.println(" 没有匹配到内容....");
-           }*/
-
-/*           String[] split = temp.split(" ");
-           for (int i = 0; i < split.length; i++) {
-               stringBuilder.append(split[i]);
-           }*/
-
             write.write(temp);
         }
         reader.close();
@@ -112,7 +87,11 @@ public class test {
     public void subString() throws IOException {
         FileInputStream fis = new FileInputStream("d:\\test.txt");//从a.txt中读出
         BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+//        FileOutputStream fos = new FileOutputStream("d:\\sql.txt");//写到test.txt中去
+//        BufferedWriter write = new BufferedWriter(new OutputStreamWriter(fos));
         String temp;
+        FileWriter fw = null;
+        File f = new File("d:\\sql.txt");
         String[] strStart = {"10"};
         String[] strEnd = {"90"};
         while ((temp = reader.readLine()) != null) {//一次读一行
@@ -133,17 +112,17 @@ public class test {
                 String result = temp.substring(strStartIndex, strEndIndex).substring(strStart.length);
 
                 //去处多余的空格，用于分装字符串中间截取出来内容的容器
-                StringBuffer sb=new StringBuffer();//用其他方法实现
+                StringBuffer sb = new StringBuffer();//用其他方法实现
                 int flag;
-                for(int i2=0;i2<result.length();i2++){
-                    flag=0;
-                    if(result.charAt(i2)!=' '){
+                for (int i2 = 0; i2 < result.length(); i2++) {
+                    flag = 0;
+                    if (result.charAt(i2) != ' ') {
                         sb.append(result.charAt(i2));
-                    }else{
-                        flag=1;
+                    } else {
+                        flag = 1;
                     }
                     try {
-                        if(result.charAt(i2)==' '&&result.charAt(i2+1)!=' '){
+                        if (result.charAt(i2) == ' ' && result.charAt(i2 + 1) != ' ') {
                             sb.append(" ");
                         }
                     } catch (Exception e) {
@@ -154,7 +133,7 @@ public class test {
                 String fieldBuild_use = sb.toString();
                 //用于封装字段的build容器
                 StringBuilder sb_field = new StringBuilder();
-                int count=2;
+                int count = 2;
 
 
                 //创建sql语句
@@ -162,21 +141,49 @@ public class test {
                         "id INT, -- 编号\n"
                 );
                 String[] split = sb.toString().split(" ");
-                for (int i1 = 1; i1 < split.length; i1+=4) {
+                for (int i1 = 1; i1 < split.length; i1 += 4) {
                     System.out.println(split[i1]);
-                    if(fieldBuild_use.charAt(i1)==' '&&fieldBuild_use.charAt(i1+1)!=' '){
+                    if (fieldBuild_use.charAt(i1) == ' ' && fieldBuild_use.charAt(i1 + 1) != ' ') {
                         sb_field.append(split[i1] + " " + split[count]).append(",\n");
 
                     }
-                    count+=4;
+                    count += 4;
                 }
-                sb_field.replace(sb_field.length()-2,sb_field.length(),");");
-                System.out.println(sb_field.toString());
+                sb_field.replace(sb_field.length() - 2, sb_field.length(), ");");
+                String s = sb_field.toString();
+
+                try {
+                    if(!f.exists()){
+                        f.createNewFile();
+                    }
+                    fw = new FileWriter(f);
+                    BufferedWriter out = new BufferedWriter(fw);
+                    out.write(s, 0, s.length()-1);
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("end");
+             /*   // FileInputStream sqlFs = new FileInputStream(s);//从sb_field中读出
+                //BufferedReader sqlReader = new BufferedReader(new InputStreamReader(sqlFs));
+                FileOutputStream fos = new FileOutputStream("d:\\sql.txt");//写到test.txt中去
+                BufferedWriter write = new BufferedWriter(new OutputStreamWriter(fos));
+                while ((sqlOut = ) != null) {//一次读一行
+                    write.write(sqlOut);
+                }
+                if (sqlReader == null) {
+                    reader.close();
+                }
+                if (write == null) {
+                    write.close();*/
+                }
 
             }
             if (reader == null) {
                 reader.close();
             }
+
+
         }
 
        /*
@@ -196,7 +203,7 @@ public class test {
             String result = fisString.substring(strStartIndex, strEndIndex).substring(strStart.length);
             System.out.println(result);
         }*/
-    }
+
 
 
     //将txt文件转换成execl文件
