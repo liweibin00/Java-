@@ -28,6 +28,8 @@ public class liweibin_sql {
         );
 
 
+        //遍历show对象，拼接字段名和数据类型
+        //对不需要替换的字段名和数据类型添加到sb_field容器中
         for (int i = 0; i < show.size(); i++) {
             sql sql = show.get(i);
             if (!sql.getDataType().contains("deci-10") || !sql.getDataType().contains("deci-10")) {
@@ -43,6 +45,8 @@ public class liweibin_sql {
                     }
                 }
             }
+
+            //对需要替换的字段名和数据类型进行替换，然后添加到sb_field容器中
             for (int i1 = 0; i1 < srcArr.length; i1++) {
 
                 //原有的内容
@@ -58,175 +62,53 @@ public class liweibin_sql {
                 }
             }
         }
-        //拿到已经拼接玩的sql语句
+        //拿到已经拼接玩的創建表sql语句
         sb_field.replace(sb_field.length() - 1, sb_field.length(), ");");
+
+
+        //创建添加的sql语句
+        StringBuilder sb_insert = new StringBuilder();
+        sb_insert.append("INSERT INTO cankun_data(id) VALUES");
+
+
+        //遍歷循環得到id
+        for (int i = 0; i < show.size(); i++) {
+            String id = show.get(i).getId();
+            sb_insert.append("("+id+ "),");
+        }
+        //拿到已经拼接玩的添加sql语句
+        sb_insert.replace(sb_insert.length() - 1, sb_insert.length(), ";");
+
+
+/*        System.out.println("****************************");
+        System.out.println(sb_field);*/
         System.out.println("****************************");
-        System.out.println(sb_field);
+        System.out.println(sb_insert);
 
 
-
-       /* for (int i = 0; i < srcArr.length; i++) {
-            //原有的内容
-            String srcStr = srcArr[i];
-            //要替换的内容
-            String replaceStr = replaceArr[i];
-            // 读
-            File file = new File(path);
-            FileReader in = new FileReader(file);
-            BufferedReader bufIn = new BufferedReader(in);
-            // 内存流, 作为临时流
-            CharArrayWriter tempStream = new CharArrayWriter();
-            // 替换
-            String line = null;
-            while ((line = bufIn.readLine()) != null) {
-                // 替换每行中, 符合条件的字符串
-                line = line.replaceAll(srcStr, replaceStr);
-                String[] split = new String[0];
-                try {
-                    split = line.split(" ");
-                    System.out.println(split[0]);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-
-                // 将该行写入内存
-                tempStream.write(line);
-                // 添加换行符
-                tempStream.append(System.getProperty("line.separator"));
-            }
-            // 关闭 输入流
-            bufIn.close();
-            // 将内存中的流 写入 文件
-            FileWriter out = new FileWriter(file);
-            //如果文件不存在，则自动生成
-            if (!file.exists()) {
-                try {
-                    file.createNewFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            tempStream.writeTo(out);
-            out.close();
-            System.out.println("====path:" + path);
-
+        //将sb_field对象输出成txt文本文件
+        File outputFile = new File("d:\\pt_sql.txt");
+        File insertFile = new File("d:\\pt_insert.txt");
+        FileOutputStream outputFileStream = null;
+        FileOutputStream insertOutputFileStream=null;
+        // try to open file output.txt
+        try {
+            outputFileStream = new FileOutputStream(outputFile);
+            insertOutputFileStream = new FileOutputStream(insertFile);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
-*/
+
+        byte[] bytes = sb_field.toString().getBytes("utf-8");
+            outputFileStream.write(bytes);
+
+        byte[] bytes1 = sb_insert.toString().getBytes("utf-8");
+        insertOutputFileStream.write(bytes1);
     }
 
 
-    //将df文件转换成txt文件
-    public void change_txt() throws IOException {
-        FileInputStream fis = new FileInputStream("d:\\pt.df");//从a.txt中读出
-        FileOutputStream fos = new FileOutputStream("d:\\abc.txt");//写到test.txt中去
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
-        BufferedWriter write = new BufferedWriter(new OutputStreamWriter(fos));
-        String temp;
-        while ((temp = reader.readLine()) != null) {//一次读一行
-            write.write(temp);
-        }
-        reader.close();
-        write.close();
-    }
 
 
-    //截取字符串拼接sql语句
-
-    /**
-     * 截取字符串str中指定字符 strStart、strEnd之间的字符串
-     *
-     * @return
-     */
-    public void subString() throws IOException {
-        FileInputStream fis = new FileInputStream("d:\\abc.txt");//从a.txt中读出
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
-
-        String temp;
-        FileWriter fw = null;
-        File f = new File("d:\\sql.txt");
-        String[] strStart = {"10"};
-        String[] strEnd = {"90"};
-        while ((temp = reader.readLine()) != null) {//一次读一行
-            for (int i = 0; i < strStart.length; i++) {
-                /* 找出指定的2个字符在 该字符串里面的 位置 */
-                int strStartIndex = temp.indexOf(strStart[i]);
-                int strEndIndex = temp.indexOf(strEnd[i]);
-
-
-                /* index 为负数 即表示该字符串中 没有该字符 */
-                if (strStartIndex < 0) {
-                    System.out.println("字符串 :---->" + temp + "<---- 中不存在 " + strStart + ", 无法截取目标字符串");
-                }
-                if (strEndIndex < 0) {
-                    System.out.println("字符串 :---->" + temp + "<---- 中不存在 " + strEnd + ", 无法截取目标字符串");
-                }
-                /* 开始截取 */
-                String result = temp.substring(strStartIndex, strEndIndex).substring(strStart.length);
-
-                //去处多余的空格，用于分装字符串中间截取出来内容的容器
-                StringBuffer sb = new StringBuffer();//用其他方法实现
-                int flag;
-                for (int i2 = 0; i2 < result.length(); i2++) {
-                    flag = 0;
-                    if (result.charAt(i2) != ' ') {
-                        sb.append(result.charAt(i2));
-                    } else {
-                        flag = 1;
-                    }
-                    try {
-                        if (result.charAt(i2) == ' ' && result.charAt(i2 + 1) != ' ') {
-                            sb.append(" ");
-                        }
-                    } catch (Exception e) {
-                        continue;
-                    }
-                }
-
-                String fieldBuild_use = sb.toString();
-                //用于封装字段的build容器
-                StringBuilder sb_field = new StringBuilder();
-                int count = 2;
-
-
-                //创建sql语句
-                sb_field.append("CREATE TABLE cankun_data (\n" +
-                        "id INT, -- 编号\n"
-                );
-                String[] split = sb.toString().split(" ");
-                for (int i1 = 1; i1 < split.length; i1 += 4) {
-                    System.out.println(split[i1]);
-                    if (fieldBuild_use.charAt(i1) == ' ' && fieldBuild_use.charAt(i1 + 1) != ' ') {
-                        sb_field.append(split[i1] + " " + split[count]).append(",\n");
-
-                    }
-                    count += 4;
-                }
-                sb_field.replace(sb_field.length() - 2, sb_field.length(), ");");
-                String s = sb_field.toString();
-
-                try {
-                    if (!f.exists()) {
-                        f.createNewFile();
-                    }
-                    fw = new FileWriter(f);
-                    BufferedWriter out = new BufferedWriter(fw);
-                    out.write(s, 0, s.length() - 1);
-                    out.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("end");
-
-            }
-
-        }
-        if (reader == null) {
-            reader.close();
-        }
-
-
-    }
 
     public static void main(String[] args) throws IOException {
         liweibin_sql aa = new liweibin_sql();
@@ -235,12 +117,12 @@ public class liweibin_sql {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        String filePath = "d:\\pt.df";
+        String filePath = "d:\\d.txt";
 
 //      "res/";
         readTxtFile(filePath);
-        aa.change_txt();
-        aa.subString();
+//        aa.change_txt();
+
     }
 
     /**
@@ -255,17 +137,20 @@ public class liweibin_sql {
      */
     public static void readTxtFile(String filePath) {
         try {
-            String encoding = "GBK";
+            String encoding = "utf-8";
             File file = new File(filePath);
             if (file.isFile() && file.exists()) { //判断文件是否存在
                 InputStreamReader read = new InputStreamReader(
                         new FileInputStream(file), encoding);//考虑到编码格式
                 BufferedReader bufferedReader = new BufferedReader(read);
+                OutputStreamWriter osw = new OutputStreamWriter( new FileOutputStream("d:\\sql.txt"));
+                BufferedWriter write = new BufferedWriter(osw);
                 String lineTxt = null;
                 while ((lineTxt = bufferedReader.readLine()) != null) {
-                    System.out.println(lineTxt);
+                    write.write(lineTxt);
                 }
                 read.close();
+                write.close();
             } else {
                 System.out.println("找不到指定的文件");
             }
@@ -296,7 +181,7 @@ public class liweibin_sql {
         List<sql> msqls2 = new ArrayList<sql>();
         List<sql> msqls3 = new ArrayList<sql>();
         List<sql> msqls4 = new ArrayList<sql>();
-        List<sql> msqls5 = new ArrayList<sql>();
+
 
         try {
             FileReader fr = new FileReader(file);
@@ -322,6 +207,7 @@ public class liweibin_sql {
                 sql msql = new sql();
                 String[] split = list.get(i).split("[\\s]{1,}");
                 if (split.length > 3) {
+                    msql.setId(split[1]);
                     msql.setFiledName(split[2]);
                     msql.setDataType(split[3]);
                     msqls1.add(msql);
