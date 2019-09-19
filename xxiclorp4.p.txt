@@ -1,0 +1,574 @@
+/* iclorp   - PART LOCATION REPORT                           */
+/* COPYRIGHT qad.inc. ALL RIGHTS RESERVED. THIS IS AN UNPUBLISHED WORK. */
+/* REVISION: 1.0      LAST MODIFIED: 07/17/86   BY: PML      */
+/* REVISION: 1.0      LAST MODIFIED: 09/15/86   BY: EMB *12* */
+/* REVISION: 2.1      LAST MODIFIED: 09/09/87   BY: WUG *A94**/
+/* REVISION: 4.0    LAST MODIFIED: 02/24/88    BY: WUG *A175**/
+/* REVISION: 6.0    LAST MODIFIED: 05/14/90    BY: WUG *D002**/
+/* REVISION: 6.0    LAST MODIFIED: 07/10/90    BY: WUG *D051**/
+/* REVISION: 6.0    LAST MODIFIED: 01/07/91    BY: emb *D337**/
+/* REVISION: 6.0    LAST MODIFIED: 10/07/91    BY: SMM *D887*/
+/* REVISION: 7.2    LAST MODIFIED: 04/16/93    BY: pma *FE50*/
+/* last modified : 07/14/99  by: beyond */
+/***last modified by zijing 08/17/06 adding "curr" ***/
+/**last modified by amber 03/27/08 增加TKE在途金額***/
+/*last modified by yq_lin 2010/4/9 05:03PM 增加到期日*/
+define variable part like pt_part.
+define variable part1 like pt_part.
+define variable site like ld_site /*initial "TKL"*/. /*marked by 215391 2011/12/16 15:03*/
+define variable site1 like ld_site /*initial "TKL"*/. /*marked by 215391 2011/12/16 15:03*/
+define variable loc like ld_loc.
+define variable loc1 like ld_loc.
+define variable um like pt_um.
+define variable chr01 like ld__chr03 label "儲位".
+define variable chr02 like ld__chr03.
+define variable wk_amt as deci format "->>>>>>>>>>9.99" initial 0.
+define variable wk_amt_tot as deci format "->>>>>>>>>>>9.99" initial 0.
+define variable wk_amt_tot1 like wk_amt_tot.
+define variable flag as logical init no label "是否負庫存".
+def var curr like exr_curr1 initial "cny".
+def var rate like exr_rate.
+def var mch1 like pt_part_type.
+def var pk_log as logical.
+def var qty_ord as deci.
+def var qty_rcvd as deci.
+def var desc1 like pt_desc1.
+def var dept as char.
+def var dept1 as char.
+def var dept2 as char.
+def var dept3 as char.
+def var lot1 like ld_lot.
+def var lot2 like ld_lot.
+def buffer pkmstr for pk_mstr.
+def buffer pakdet for pak_det.
+def var vend like po_vend.
+def var days as inte format ">>>9".
+def temp-table ictmp21
+   field yr as inte
+   field site like ld_site
+   field dept like dpt_dept
+   field part like pt_part
+   field pk_qty as deci format "->>,>>>,>>9.99" init 0
+   field pk_amt as deci format "->>,>>>,>>9.99" init 0
+ index dept is primary unique site dept part.      
+def var exprice like sod_price.
+def var chr03 as char.
+def var ldqty like ld_qty_oh.
+def var vend1 like vend.
+def var due_date like sod_due_date.
+def var price like sod_price .
+def var ldday as int label "呆滯定義".  /*215391 2012/5/29*/
+def var lastday as date label "呆滯起始日".  /*215391 2012/5/29*/
+/* DISPLAY TITLE */
+{mfdtitle.i "b "} /*FE50*/
+{xxbscurr.i}
+/* SELECT FORM */
+form
+   part           colon 15 label "零件號"
+   part1          label {t001.i} colon 49 skip
+   site           colon 15 label "地點"
+   site1          label {t001.i} colon 49 skip
+   loc            colon 15  label "庫位"
+   loc1           label {t001.i} colon 49 skip
+   chr01          colon 15
+   chr02          label {t001.i} colon 49 skip
+   lot1           colon 15
+   lot2           label {t001.i} colon 49 skip 
+   mch1           colon 15  label "機種"
+   vend1          colon 49 label "廠商"
+   flag           colon 15 
+   curr           colon 49   label "幣別"
+   pk_log         colon 15 label "在途否"
+   
+with frame a side-labels.
+
+/* REPORT BLOCK */
+repeat:
+   find first si_mstr where si_domain = global_domain no-lock no-error.
+   if available si_mstr then do:
+      site = si_site.
+      site1 = si_site.
+   end.  /*215391 2011/12/16 15:00*/
+
+
+   if part1 = hi_char then part1 = "".
+   /*if site1 = hi_char then site1 = "". 215391 2011/12/16 15:00*/
+   if loc1 = hi_char then loc1 = "".
+   if lot2 = hi_char then lot2 = "".
+
+   update part part1 site site1 loc loc1 chr01 chr02 
+   	  lot1 lot2
+   	  mch1 vend1 curr flag 
+          pk_log with frame a.
+
+   bcdparm = "".
+   {mfquoter.i part   }
+   {mfquoter.i part1  }
+   {mfquoter.i site   }
+   {mfquoter.i site1  }
+   {mfquoter.i loc    }
+   {mfquoter.i loc1   }
+  
+   if part1 = "" then part1 = hi_char.
+   /*if site1 = "" then site1 = hi_char.  215391 2011/12/16 15:00*/ 
+   if loc1 = "" then loc1 = hi_char.
+   if lot2 = "" then lot2 = hi_char.
+   
+
+   /* SELECT PRINTER */
+   {mfselprt.i "terminal" 132}
+
+   /*{mfphead.i}*/
+ if part = "" then do: 
+   for each ld_det no-lock
+       where ld_domain = global_domain
+         and (ld_part >= part and ld_part <= part1)
+         and (ld_site >= site and ld_site <= site1)
+         and (ld_loc >= loc and ld_loc <= loc1) 
+         and (ld_lot >= lot1 and ld_lot <= lot2)
+         and (ld__chr03 >= chr01 or chr01 = "" )
+         and (ld__chr03 <= chr02 or chr02 = "" )
+         and ((ld_qty_oh > 0 and flag = no)
+             or (ld_qty_oh < 0 and flag = yes))
+        use-index ld_loc_p_lot, 
+   each pt_mstr no-lock where pt_domain = global_domain
+                 and pt_part = ld_part,
+   each loc_mstr no-lock where loc_domain = global_domain
+                 and loc_loc = ld_loc and loc_site = ld_site,
+   each is_mstr no-lock where is_domain = global_domain
+                and  is_status = ld_status
+   break by ld_site by ld_loc by ld__chr03 by ld_part by ld_lot by ld_ref
+   with frame b width 200 :
+      if mch1 <> "" and pt_part_type <> mch1 then next.   /**ammy**/
+      
+      /*成品呆滯14天，其它30天 215391 2012/5/29*/ 
+      find code_mst no-lock where code_domain = global_domain
+                               and code_fldname = "lddte01"
+                               and code_value = substr(ld_part,1,2) no-error.
+      if available code_mstr then do:
+         ldday = inte(code_cmmt).
+      end.
+      else do:
+          find code_mst no-lock where code_domain = global_domain
+                                  and code_fldname = "lddte01"
+                                  and code_value = "other"  no-error.
+           if available code_mstr then do:
+              ldday = inte(code_cmmt).
+           end.
+      end.
+      lastday = ld__dte01.
+      if lastday = ? then lastday = today.  
+      /*end 215391 2012/5/29 */     
+      
+      chr03 = ld__chr03 + "/" + ld__chr04.
+      find sct_det where sct_domain = global_domain
+                     and sct_site = ld_site 
+                     and sct_sim = "standard" 
+                     and sct_part = ld_part no-lock no-error.
+      if available sct_det then 
+         {xxmcchange.i today 'CNY' sct_cst_tot curr exprice}
+      else exprice = 0. 
+      if ld_loc <> "D3-BTO" then do:
+         if (not ld_loc matches "*bto*")  then
+         ldqty = (ld_qty_oh - ld_supp_consign_qty ).  
+         else ldqty = ld_supp_consign_qty .
+      end.
+      else ldqty = ld_qty_oh.
+      
+      wk_amt_tot1 = wk_amt_tot1 + ldqty * exprice.
+      
+      wk_amt = ldqty * exprice.
+      wk_amt_tot = wk_amt_tot + wk_amt.
+      
+      vend = "".
+      find last tr_hist where tr_domain = global_domain 
+                           and tr_part = ld_part 
+                           and tr_type = "rct-po"
+                           and tr_loc = ld_loc
+                          /* and tr_ship_type <> "s"*/ no-lock no-error.  /*托工非庫存*/    
+      if available tr_hist then do:
+         find first po_mstr where po_domain = global_domain
+                              and po_nbr = tr_nbr no-lock no-error.
+         if available po_mstr then                               
+            vend = po_vend.
+      end.
+      /*工單退料以最後一次回報廠商*/
+      if ld_loc matches "*rj*" then do:
+          find last tr_hist where tr_domain = global_domain 
+                           and tr_part = ld_part 
+                           and tr_type = "iss-wo"
+                           and tr_loc = ld_loc
+                           and tr_qty_loc > 0
+                           and tr_serial <> "" no-lock no-error.  
+          if available tr_hist then vend = tr_serial.                 
+          else vend = vend.                 
+      end.
+      if vend1 <> "" and vend1 <> vend then next.
+      if (ld_part begins "tk" or ld_part begins "pw" or ld_part begins "tp" )then 
+      find first sod_det where sod_domain = global_domain
+                     and sod_nbr = ld_lot 
+                     and sod_part = ld_part no-lock no-error.
+      if available sod_det then assign  due_date = sod_due_date price = sod_price .
+      else assign due_date = ? price = 0 .
+      
+      find first so_mstr where so_domain = global_domain 
+                               and so_nbr = ld_lot 
+                               no-lock no-error.
+      if available so_mstr then do:
+
+         if so_curr <> curr then do:
+         {xxmcchange.i so_pricing_dt so_curr price curr price}         
+         end.
+      
+      end.                         
+                     
+ /*     display  
+
+               ld_loc format "x(6)"   label "庫位"
+               ld_part                label "料號"
+               pt_desc1 format "x(14)" label "品名"
+               pt_um format "x(3)"
+               ld__chr03 column-label "儲位" format "x(5)"
+               ldqty
+               column-label "庫位變化量!BTO庫存" format "->>>>>>9.9<<"
+               wk_amt column-label "金額" format "->>>>>>>9.9<<"
+               curr column-label "幣!別" 
+               vend column-label "廠商"
+               due_date column-label "到期日"
+               ld_lot label "制令"
+               so_cust when available so_mstr
+               sod_qty_ord  when available sod_det 
+               price *  ldqty format "->>>>>>>>>>9.99" label "庫存金額(FOB)"         
+               .
+	       down 1.
+               display pt_desc2 @ pt_desc1 ld__chr04 @ ld__chr03 .
+               if  ld_supp_consign_qty <> 0  then 
+               display         
+               	   ld_supp_consign_qty @ ldqty .*/
+      days =  0 .
+      if today - lastday >= ldday /*ld__chr02 <> "" mod by 215391 2012/5/30*/ then 
+       days = today - ld__dte01.          	   
+      display  
+    
+                ld_loc format "x(6)"   label "庫位"
+               ld_part                label "料號"
+               pt_desc1 format "x(14)" label "品名"
+               pt_um format "x(3)"
+               ld__chr03 column-label "儲位" format "x(5)"
+               ldqty  column-label "庫存量!BTO庫存" format "->>>>>>9.9<<"
+               wk_amt column-label "金額!呆滯"  format "->>>>>>>9.9<<"
+               curr  column-label "幣!別"
+               vend column-label "廠商"
+
+               
+              
+               .             
+               down 1.
+               display pt_desc2 @ pt_desc1 ld__chr04 @ ld__chr03  string(days,">>>>9") @ wk_amt.
+               if  ld_supp_consign_qty <> 0 and ld_supp_consign_qty <> ? then 
+               display 
+               	       ld_supp_consign_qty @ ldqty .
+             
+      if last-of(ld_loc) then do:
+         down 1.
+         display "庫位合計 : " @ pt_desc1 wk_amt_tot @ wk_amt.
+         underline wk_amt.
+         wk_amt_tot = 0.
+      end.
+      if last-of(ld__chr03) then do:
+         down 1.
+         disp "儲位匯總:" @ pt_desc1 wk_amt_tot1 @ wk_amt.
+         underline wk_amt.
+         wk_amt_tot1 = 0.
+      end.
+      {mfrpexit.i}
+   end.
+ end. /* if part = "" */
+ else do:  /* if part <> "" then sorted by ld_part */
+   for each ld_det  no-lock
+       where ld_domain = global_domain
+         and (ld_part >= part and ld_part <= part1)
+         and (ld_site >= site and ld_site <= site1)
+         and (ld_loc >= loc and ld_loc <= loc1) 
+         and (ld_lot >= lot1 and ld_lot <= lot2)
+         and (ld__chr03 >= chr01 or chr01 = "" )
+         and (ld__chr03 <= chr02 or chr02 = "" )
+         and ((ld_qty_oh > 0 and flag = no)
+             or (ld_qty_oh < 0 and flag = yes))
+        use-index ld_loc_p_lot, 
+   each pt_mstr no-lock where pt_domain = global_domain
+                and pt_part = ld_part,
+   each loc_mstr no-lock where loc_domain = global_domain
+                 and loc_loc = ld_loc and loc_site = ld_site,
+   each is_mstr no-lock where is_domain = global_domain
+                and is_status = ld_status
+   break by ld_site by ld_loc by ld_part by ld__chr03 by ld_lot by ld_ref
+   with frame g width 120:
+      if ld_loc <> "D3-BTO" then do:
+           if not ld_loc matches "*bto*" then
+           ldqty = (ld_qty_oh - ld_supp_consign_qty ).  
+           else ldqty = ld_supp_consign_qty .
+      end.
+      else ldqty = ld_qty_oh.
+      accumulate ldqty (total by ld_loc).
+      find sct_det where sct_domain = global_domain
+           and sct_site = ld_site and sct_sim = "standard"
+           and sct_part = ld_part no-lock no-error.
+      if available sct_det then 
+         {xxmcchange.i today 'CNY' sct_cst_tot CURR exprice}
+      else exprice = 0.            
+      wk_amt_tot1 = wk_amt_tot1 + ldqty * exprice.
+     
+      wk_amt = ldqty * exprice.
+      wk_amt_tot = wk_amt_tot + wk_amt.
+      vend = "".
+      find last tr_hist where tr_domain = global_domain 
+                           and tr_part = ld_part 
+                           and tr_type = "rct-po" 
+                           and tr_loc = ld_loc
+                           /*and tr_ship_type <> "s"*/ no-lock no-error.     
+      if available tr_hist then do:
+         vend = tr_addr.         
+      end.
+      else do:
+         find last tr_hist where tr_domain = global_domain 
+                           and tr_part = ld_part 
+                           and tr_type = "cn-rct" 
+                           and tr_loc = ld_loc no-lock no-error.
+         if available tr_hist then vend = tr_addr.                  
+      end.
+       /*工單退料以最後一次回報廠商*/
+      if ld_loc matches "*rj*" then do:
+          find last tr_hist where tr_domain = global_domain 
+                           and tr_part = ld_part 
+                           and tr_type = "iss-wo"
+                           and tr_loc = ld_loc
+                           and tr_qty_loc > 0
+                           and tr_serial <> "" no-lock no-error.  
+          if available tr_hist then vend = tr_serial.                 
+          else vend = vend.                 
+      end.
+      if vend1 <> "" and vend1 <> vend then next.
+      if (ld_part begins "tk" or ld_part begins "pw" or ld_part begins "tp" )then 
+      find first sod_det where sod_domain = global_domain
+                     and sod_nbr = ld_lot 
+                     and sod_part = ld_part no-lock no-error.
+      if available sod_det then assign  due_date = sod_due_date price = sod_price .
+      else assign due_date = ? price = 0 .
+      
+      find first so_mstr where so_domain = global_domain 
+                               and so_nbr = ld_lot 
+                               no-lock no-error.
+      if available so_mstr then do:
+
+         if so_curr <> curr then do:
+         {xxmcchange.i so_pricing_dt so_curr price curr price}         
+         end.
+      
+      end.   
+      days =  0 .
+      if today - lastday >= ldday /*ld__chr02 <> "" mod by 215391 2012/5/30*/ then 
+       days = today - ld__dte01. 
+                   
+      display  
+    
+               ld_loc format "x(6)"   label "庫位"
+               ld_part                label "料號"
+               pt_desc1 format "x(14)" label "品名"
+               pt_um format "x(3)"
+               ld_lot column-label "批序" /*08/04/17*sarah*add*/
+               ld_ref column-label "參考" /*08/04/17*sarah*add*/ 
+               ld__chr03 column-label "儲位" format "x(5)"
+               ldqty  column-label "庫存量!BTO庫存" format "->>>>>>9.9<<"
+               wk_amt column-label "金額!呆滯"  format "->>>>>>>9.9<<"
+               curr  column-label "幣!別"
+               vend column-label "廠商"
+
+               .             
+               down 1.
+               display pt_desc2 @ pt_desc1 ld__chr04 @ ld__chr03  string(days,">>>>9") @ wk_amt.
+               if  ld_supp_consign_qty <> 0  and ld_supp_consign_qty <> ? then 
+               display 
+               	       ld_supp_consign_qty @ ldqty .
+        
+    
+          
+
+      if last-of(ld_loc) then do:
+         down 1.
+         display "庫位合計 : " @ pt_desc1 
+         accum total by ld_loc ldqty @ ldqty
+         wk_amt_tot @ wk_amt.
+         underline wk_amt.
+         wk_amt_tot = 0.
+      end.
+      /*if last-of(ld__chr03) then do:
+         down 1.
+         disp "儲位匯總:" @ pt_desc1 wk_amt_tot1 @ wk_amt.
+         underline wk_amt.
+         wk_amt_tot1 = 0.
+      end. */
+      {mfrpexit.i}
+    end.   
+ end.
+ if pk_log then do:
+   qty_ord = 0. dept = "". dept3 = "".
+    for each pk_mstr no-lock where pk_domain = global_domain
+                    and pk_site = "tkl"
+                    and pk_close_date >= 01/01/08,
+            each pak_det no-lock where pak_domain = global_domain
+                    and pak_no = pk_no
+                    and pak_invoice = pk_invoice
+                    and pak_part >= part
+                    and pak_part <= part1
+                    and (pak_loc = "tke"
+                     or pak_loc = "w0023") use-index pak_no,
+            each pt_mstr no-lock where pt_domain = global_domain
+                         and pt_part = pak_part
+            break by pak_invoice by pak_part with width 200:
+        qty_ord = qty_ord + pak_box_qty * pak_box_amt.
+        if last-of(pak_part) then do:
+           dept = "".
+           find first pr_det where pr_domain = global_domain
+                           and pr_inv_nbr = pak_invoice
+                           and pr_part = pak_part no-error.
+           if available pr_det then do:
+              find pod_det no-lock where pod_domain = global_domain
+                                 and pod_nbr = pr_nbr
+                                 and pod_line = pr_line no-error.
+              if available pod_det then dept = caps(substr(pod_loc,1,2)).
+              else dept = "TKL".
+           end.
+           else do:
+              find pod_det no-lock where pod_domain = global_domain
+                           and pod_nbr = pak_podnbr
+                           and pod_line = pak_podline no-error.
+              if available pod_det then dept = caps(substr(pod_loc,1,2)).
+             else dept = "TKL". 
+           end.
+           for each pr_det no-lock where pr_domain = global_domain
+                           and pr_inv_nbr = pak_invoice
+                           and pr_part = pak_part:
+               find first prh_hist no-lock where prh_domain = global_domain
+                             and prh_receiver = pr_receiver
+                             and prh_part = pr_part no-error.
+               if available prh_hist then assign qty_rcvd = prh_rcvd + qty_rcvd.
+           end.  
+           if qty_rcvd = 0 then do:
+              for each pakdet no-lock
+                       where pakdet.pak_domain = global_domain
+                         and pakdet.pak_podnbr = pak_det.pak_podnbr
+                         and pakdet.pak_part = pak_det.pak_part,
+                 each pkmstr no-lock where pkmstr.pk_domain = pakdet.pak_domain
+                                    and pkmstr.pk_no = pakdet.pak_no
+                                    and pkmstr.pk_invoice = pakdet.pak_invoice
+                                    and pkmstr.pk_site = ""
+                  break by pakdet.pak_invoice by pakdet.pak_part.
+                if last-of(pakdet.pak_part) then do:
+                   for each pr_det no-lock where pr_domain = global_domain
+                                  and pr_inv_nbr = pakdet.pak_invoice
+                                  and pr_part = pakdet.pak_part :
+                      find first prh_hist no-lock 
+                            where prh_domain = global_domain
+                              and prh_receiver = pr_receiver
+                              and prh_part = pr_part no-error.
+                      if available prh_hist then 
+                        assign  qty_rcvd = qty_rcvd + prh_rcvd.
+                   end.
+                end.
+             end.    
+           end. /*end qty_ord = 0*/
+           if loc = "rd" or loc = "" then 
+              assign qty_ord = 0
+                     qty_rcvd = 0.
+           if loc <> "RD" and loc <> "" then do:
+              if loc <> "AD" then site = "TKL".
+              else site = "TKMC".
+              find first ictmp21 where ictmp21.yr = year(today)
+                          and ictmp21.site = site 
+                          and ictmp21.dept = dept 
+                          and ictmp21.part = pak_part no-error.
+              if not available ictmp21 then do:
+                   create ictmp21.
+                   assign ictmp21.yr = year(today)
+                          ictmp21.site = site
+                          ictmp21.part = pak_part
+                          ictmp21.dept = dept.
+               end.
+               assign 
+               ictmp21.pk_qty = ictmp21.pk_qty + qty_ord - qty_rcvd
+               ictmp21.pk_amt = ictmp21.pk_amt 
+                       + (qty_ord - qty_rcvd) * pak_per_cost.
+               qty_rcvd = 0.
+               qty_ord = 0.
+           end.
+         end.
+       end.
+       dept1 = substr(loc,1,2).
+       if loc1 = hi_char then dept2 = hi_char.
+       else dept2 = substr(loc1,1,2).
+       wk_amt_tot = 0.
+       for each ictmp21 no-lock where ictmp21.part >= part
+                            and ictmp21.part <= part1
+                            and ictmp21.dept >= dept1
+                            and ictmp21.dept <= dept2
+                            and ictmp21.pk_qty > 0 
+                   break by ictmp21.dept with frame c width 120:
+           dept3 = ictmp21.dept + "在途".
+           wk_amt = 0.
+           if curr <> "cny" then do:
+           {xxmcchange.i today 'usd' ictmp21.pk_amt curr wk_amt}
+           end.
+           else wk_amt = ictmp21.pk_amt.
+           wk_amt_tot = wk_amt_tot + pk_amt.
+           find pt_mstr no-lock where pt_domain = global_domain
+                        and pt_part = ictmp21.part no-error.
+           if available pt_mstr then 
+                assign desc1 = pt_desc1
+                       um = pt_um.
+           else assign desc1 = ""
+                       um = "".
+           vend = "".
+           find last tr_hist where tr_domain = global_domain 
+                                and tr_part = ld_part 
+                                and tr_type = "rct-po" 
+                                and tr_loc = ld_loc no-lock no-error.     
+           if available tr_hist then do:
+              find first po_mstr where po_domain = global_domain
+                                   and po_nbr = tr_nbr no-lock no-error.
+              if available po_mstr then                               
+                 vend = po_vend.
+           end. 
+           if ld_loc matches "*rj*" then do:
+           find last tr_hist where tr_domain = global_domain 
+                           and tr_part = ld_part 
+                           and tr_type = "iss-wo"
+                           and tr_loc = ld_loc
+                           and tr_qty_loc > 0
+                           and tr_serial <> "" no-lock no-error.  
+           if available tr_hist then vend = tr_serial.                 
+           else vend = vend.                 
+          end.
+           if vend1 <> "" and vend1 <> vend then next.
+           disp dept3  label "庫位"
+                ictmp21.part 
+                desc1
+                um
+                "" label "儲位"
+                ictmp21.pk_qty label "在途數量"
+                ictmp21.pk_amt label "在途金額(USD)"
+                wk_amt label "貨幣金額"
+                vend column-label "廠商".
+           if last-of(ictmp21.dept) then do:
+              down 1.
+              display "部門合計 : " @ ictmp21.pk_qty
+                      wk_amt_tot @ ictmp21.pk_amt.
+              underline wk_amt.
+              wk_amt_tot = 0.
+           end.
+       end.         
+   end.
+   /* REPORT TRAILER  */
+   {mfreset.i}
+   {prin.i}
+end.
