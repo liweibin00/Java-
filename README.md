@@ -9,3 +9,6 @@ https://www.cnblogs.com/xiaoL/p/7753130.html
 
 ssm整合activemq
 https://blog.csdn.net/weixin_40839342/article/details/80940063
+
+Java虚拟机
+https://blog.csdn.net/qq_41701956/article/details/81664921
