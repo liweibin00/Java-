@@ -23,3 +23,6 @@ https://gitee.com/jishenghua/JSH_ERP
 
 易源数据
 https://www.showapi.com/
+
+别人的笔记
+https://mrbird.cc/page/2/
