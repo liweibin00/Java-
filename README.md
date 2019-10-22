@@ -19,3 +19,7 @@ https://blog.csdn.net/qq_41701956/article/details/81664921
 
 码云开源ERP项目（财务）
 https://gitee.com/jishenghua/JSH_ERP
+
+
+易源数据
+https://www.showapi.com/
