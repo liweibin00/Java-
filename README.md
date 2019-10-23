@@ -26,3 +26,6 @@ https://www.showapi.com/
 
 别人的笔记
 https://mrbird.cc/page/2/
+
+程序员外包接单
+https://blog.csdn.net/qq_41247433/article/details/80646959
