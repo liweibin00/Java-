@@ -33,3 +33,16 @@ https://blog.csdn.net/qq_41247433/article/details/80646959
 
 码云中电商项目
 https://gitee.com/fuyang_lipengjun/platform#doc
+
+
+http://192.168.51.90:8192/ekp/login.jsp
+
+登录端口变为8192
+
+
+OA测试系统链接http://192.168.51.90:8080/ekp/sys/portal/page.jsp
+
+帐号:admin
+密码:abcABC123
+大家可以先体验一下
+
