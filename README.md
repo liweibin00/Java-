@@ -46,3 +46,7 @@ OA测试系统链接http://192.168.51.90:8080/ekp/sys/portal/page.jsp
 密码:abcABC123
 大家可以先体验一下
 
+
+
+
+https://www.cnblogs.com/langtianya/p/3874019.html 多线程读写文件
