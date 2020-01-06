@@ -52,3 +52,7 @@ OA测试系统链接http://192.168.51.90:8080/ekp/sys/portal/page.jsp
 https://www.cnblogs.com/langtianya/p/3874019.html 多线程读写文件
 
 http://192.168.51.80:8192/ekp/sys
+
+
+springboot整合其他软件技术
+https://blog.csdn.net/ityouknow/article/details/80490926
